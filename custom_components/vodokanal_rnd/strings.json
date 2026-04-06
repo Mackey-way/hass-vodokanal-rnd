@@ -1,0 +1,74 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Вход в личный кабинет",
+                "description": "Введите данные от личного кабинета Водоканал Ростов-на-Дону",
+                "data": {
+                    "login": "Email",
+                    "password": "Пароль"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Повторная авторизация",
+                "description": "Сессия истекла. Введите пароль заново.",
+                "data": {
+                    "password": "Пароль"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Неверный логин или пароль",
+            "cannot_connect": "Ошибка подключения к серверу",
+            "unknown": "Неизвестная ошибка"
+        },
+        "abort": {
+            "already_configured": "Аккаунт уже настроен",
+            "reauth_successful": "Авторизация обновлена"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Настройки",
+                "data": {
+                    "scan_interval": "Интервал обновления (часы)"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "balance": {
+                "name": "К оплате"
+            },
+            "debt": {
+                "name": "Задолженность"
+            },
+            "accrued": {
+                "name": "Начислено"
+            },
+            "paid": {
+                "name": "Оплачено"
+            },
+            "last_payment_amount": {
+                "name": "Последний платёж"
+            },
+            "last_payment_date": {
+                "name": "Дата последнего платежа"
+            },
+            "address": {
+                "name": "Адрес"
+            },
+            "counter_reading": {
+                "name": "Показание"
+            },
+            "counter_consumption": {
+                "name": "Потребление"
+            },
+            "counter_reading_date": {
+                "name": "Дата показания"
+            }
+        }
+    }
+}

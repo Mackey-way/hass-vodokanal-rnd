@@ -1,0 +1,6 @@
+{
+    "name": "Водоканал Ростов-на-Дону",
+    "render_readme": true,
+    "country": "RU",
+    "homeassistant": "2024.1.0"
+}

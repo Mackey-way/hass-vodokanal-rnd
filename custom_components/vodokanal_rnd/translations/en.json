@@ -1,0 +1,74 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Login to personal cabinet",
+                "description": "Enter your Vodokanal Rostov-on-Don credentials",
+                "data": {
+                    "login": "Email",
+                    "password": "Password"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Re-authentication",
+                "description": "Session expired. Please enter your password again.",
+                "data": {
+                    "password": "Password"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Invalid login or password",
+            "cannot_connect": "Cannot connect to server",
+            "unknown": "Unknown error"
+        },
+        "abort": {
+            "already_configured": "Account already configured",
+            "reauth_successful": "Authentication updated"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Settings",
+                "data": {
+                    "scan_interval": "Update interval (hours)"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "balance": {
+                "name": "Amount due"
+            },
+            "debt": {
+                "name": "Debt"
+            },
+            "accrued": {
+                "name": "Accrued"
+            },
+            "paid": {
+                "name": "Paid"
+            },
+            "last_payment_amount": {
+                "name": "Last payment"
+            },
+            "last_payment_date": {
+                "name": "Last payment date"
+            },
+            "address": {
+                "name": "Address"
+            },
+            "counter_reading": {
+                "name": "Reading"
+            },
+            "counter_consumption": {
+                "name": "Consumption"
+            },
+            "counter_reading_date": {
+                "name": "Reading date"
+            }
+        }
+    }
+}

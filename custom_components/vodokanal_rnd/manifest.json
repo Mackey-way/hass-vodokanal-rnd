@@ -1,0 +1,12 @@
+{
+    "domain": "vodokanal_rnd",
+    "name": "Водоканал Ростов-на-Дону",
+    "codeowners": ["@Mackey-way"],
+    "config_flow": true,
+    "documentation": "https://github.com/Mackey-way/hass-vodokanal-rnd",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/Mackey-way/hass-vodokanal-rnd/issues",
+    "loggers": ["vodokanal_rnd"],
+    "requirements": [],
+    "version": "1.0.0"
+}

@@ -1,0 +1,39 @@
+refresh:
+  name: Обновить данные
+  description: Принудительно обновить данные лицевого счёта
+  fields:
+    device_id:
+      name: Устройство
+      description: Лицевой счёт Водоканала
+      required: true
+      selector:
+        device:
+          integration: vodokanal_rnd
+
+send_readings:
+  name: Отправить показания
+  description: Отправить показания счётчика воды
+  fields:
+    device_id:
+      name: Счётчик
+      description: Счётчик воды (device_id)
+      required: false
+      selector:
+        device:
+          integration: vodokanal_rnd
+    account:
+      name: Лицевой счёт
+      description: Номер лицевого счёта (альтернатива device_id)
+      required: false
+      selector:
+        text:
+    value:
+      name: Показание
+      description: Текущее показание счётчика (м³)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 999999
+          mode: box
+          unit_of_measurement: "м³"

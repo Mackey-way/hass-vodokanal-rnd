@@ -1,0 +1,36 @@
+{
+    "entity": {
+        "sensor": {
+            "balance": {
+                "default": "mdi:currency-rub"
+            },
+            "debt": {
+                "default": "mdi:alert-circle-outline"
+            },
+            "accrued": {
+                "default": "mdi:receipt-text"
+            },
+            "paid": {
+                "default": "mdi:check-circle-outline"
+            },
+            "last_payment_amount": {
+                "default": "mdi:cash"
+            },
+            "last_payment_date": {
+                "default": "mdi:calendar"
+            },
+            "address": {
+                "default": "mdi:map-marker"
+            },
+            "counter_reading": {
+                "default": "mdi:water"
+            },
+            "counter_consumption": {
+                "default": "mdi:water-outline"
+            },
+            "counter_reading_date": {
+                "default": "mdi:calendar-clock"
+            }
+        }
+    }
+}
