@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import re
 from dataclasses import dataclass, field
@@ -20,6 +21,34 @@ class VodokanalAuthError(Exception):
 
 class VodokanalApiError(Exception):
     """API request error."""
+
+
+def with_reauth_retry(method):
+    """Retry an API method once after re-authenticating on session expiry.
+
+    The Vodokanal personal cabinet uses short-lived session cookies. When a
+    request hits an expired session, the inner method raises
+    ``VodokanalAuthError``. This decorator catches it, performs a fresh login
+    using the stored credentials and retries the call once. If the retry also
+    fails (or the re-login itself fails), the error propagates so the
+    coordinator can trigger the reauth UI.
+    """
+
+    @functools.wraps(method)
+    async def wrapper(self, *args, **kwargs):
+        try:
+            return await method(self, *args, **kwargs)
+        except VodokanalAuthError:
+            _LOGGER.info(
+                "Vodokanal session expired in %s, re-authenticating",
+                method.__name__,
+            )
+            self._authenticated = False
+            self._csrf_token = None
+            await self.authenticate()
+            return await method(self, *args, **kwargs)
+
+    return wrapper
 
 
 @dataclass
@@ -75,8 +104,13 @@ class VodokanalAPI:
         self._first_account: str | None = None
 
     async def authenticate(self) -> bool:
-        """Authenticate with the personal cabinet."""
+        """Authenticate with the personal cabinet.
+
+        Clears any existing session cookies before logging in so that
+        re-authentication after session expiry starts from a clean state.
+        """
         try:
+            self._session.cookie_jar.clear()
             csrf_token = await self._get_csrf_token()
             async with self._session.post(
                 f"{BASE_URL}/login",
@@ -141,6 +175,7 @@ class VodokanalAPI:
         if not self._authenticated:
             await self.authenticate()
 
+    @with_reauth_retry
     async def get_accounts(self) -> list[str]:
         """Get list of account numbers."""
         await self._ensure_authenticated()
@@ -171,6 +206,7 @@ class VodokanalAPI:
         """Get first account number from login redirect."""
         return self._first_account
 
+    @with_reauth_retry
     async def get_account_info(self, account_id: str) -> AccountInfo:
         """Get account information from account page."""
         await self._ensure_authenticated()
@@ -208,6 +244,7 @@ class VodokanalAPI:
 
             return info
 
+    @with_reauth_retry
     async def get_counters(self, account_id: str) -> list[CounterInfo]:
         """Get counter information from counters page."""
         await self._ensure_authenticated()
@@ -318,6 +355,7 @@ class VodokanalAPI:
             )
         return counters
 
+    @with_reauth_retry
     async def get_counters_history(
         self,
         account_id: str,
@@ -332,6 +370,9 @@ class VodokanalAPI:
             headers={"X-Requested-With": "XMLHttpRequest"},
             timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
         ) as resp:
+            if resp.status in (401, 403) or "/login" in str(resp.url):
+                self._authenticated = False
+                raise VodokanalAuthError("Session expired")
             if resp.status != 200:
                 raise VodokanalApiError(
                     f"countersHistory failed: {resp.status}"
@@ -360,6 +401,7 @@ class VodokanalAPI:
                 )
             return results
 
+    @with_reauth_retry
     async def get_accruals_history(
         self,
         account_id: str,
@@ -374,6 +416,9 @@ class VodokanalAPI:
             headers={"X-Requested-With": "XMLHttpRequest"},
             timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
         ) as resp:
+            if resp.status in (401, 403) or "/login" in str(resp.url):
+                self._authenticated = False
+                raise VodokanalAuthError("Session expired")
             if resp.status != 200:
                 raise VodokanalApiError(
                     f"accrualsHistory failed: {resp.status}"
@@ -399,6 +444,7 @@ class VodokanalAPI:
                 )
             return results
 
+    @with_reauth_retry
     async def get_payments_history(
         self,
         account_id: str,
@@ -413,6 +459,9 @@ class VodokanalAPI:
             headers={"X-Requested-With": "XMLHttpRequest"},
             timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
         ) as resp:
+            if resp.status in (401, 403) or "/login" in str(resp.url):
+                self._authenticated = False
+                raise VodokanalAuthError("Session expired")
             if resp.status != 200:
                 raise VodokanalApiError(
                     f"paymentsHistory failed: {resp.status}"
@@ -431,6 +480,7 @@ class VodokanalAPI:
                 )
             return results
 
+    @with_reauth_retry
     async def send_readings(
         self,
         account_id: str,
