@@ -7,6 +7,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from html import unescape
 
 import aiohttp
 
@@ -62,6 +63,7 @@ class CounterInfo:
     last_value: int
     limit: int
     description: str
+    last_date: str | None = None
 
 
 @dataclass
@@ -75,6 +77,7 @@ class AccountInfo:
     area: str = ""
     residents: str = ""
     balance: float = 0.0
+    billing_month: str | None = None
     debt: float = 0.0
     accrued: float = 0.0
     counters: list[CounterInfo] = field(default_factory=list)
@@ -242,6 +245,7 @@ class VodokanalAPI:
             if balance_match:
                 info.balance = self._parse_float(balance_match.group(1))
 
+            info.billing_month = self._get_billing_month(text)
             return info
 
     @with_reauth_retry
@@ -303,6 +307,7 @@ class VodokanalAPI:
                         last_value=old_value,
                         limit=limit,
                         description=description,
+                        last_date=self._get_counter_date(text, row_id, tarif),
                     )
                 )
 
@@ -313,6 +318,28 @@ class VodokanalAPI:
                 "Account %s: found %d counters", account_id, len(counters)
             )
             return counters
+
+    @staticmethod
+    def _get_counter_date(text: str, row_id: str, tarif: str) -> str | None:
+        """Read the last reading date from this counter's card."""
+        key = f"{row_id}_{tarif}"
+        start = re.search(r'name=["\']counters\[' + re.escape(key) + r'\]\[rowId\]["\']', text)
+        if start is None:
+            return None
+        block = text[start.end():]
+        for item in re.finditer(r'name=["\']counters\[([^\]]+)\]', block):
+            if item.group(1) != key:
+                block = block[:item.start()]
+                break
+        block = block.split("</form>", 1)[0]
+        match = re.search(r'>\s*от\s+(\d{2}\.\d{2}\.(?:\d{4}|\d{2}))\s*<', block)
+        if match:
+            for fmt in (DATE_FORMAT_SHORT, DATE_FORMAT):
+                try:
+                    return datetime.strptime(match.group(1), fmt).strftime(DATE_FORMAT_SHORT)
+                except ValueError:
+                    continue
+        return None
 
     def _parse_counters_simple(self, text: str) -> list[CounterInfo]:
         """Fallback counter parser using simpler patterns."""
@@ -351,6 +378,7 @@ class VodokanalAPI:
                     last_value=int(old_val_match.group(1)) if old_val_match else 0,
                     limit=int(limit_match.group(1)) if limit_match else 100,
                     description=description,
+                    last_date=self._get_counter_date(text, row_id, tarif),
                 )
             )
         return counters
@@ -438,8 +466,8 @@ class VodokanalAPI:
                         "month_name": month_name,
                         "debt_start": self._parse_float(row[1]),
                         "accrued": self._parse_float(row[2]),
-                        "total": self._parse_float(row[3]),
-                        "paid": self._parse_float(row[4]),
+                        "total": self._parse_float(row[4]),
+                        "paid": self._parse_float(row[3]),
                     }
                 )
             return results
@@ -526,6 +554,26 @@ class VodokanalAPI:
             raise VodokanalApiError(
                 f"Failed to submit readings: {resp.status}"
             )
+
+    @staticmethod
+    def _get_billing_month(text: str) -> str | None:
+        """Read the active billing period, not the latest provisional history row."""
+        plain = unescape(re.sub(r"<[^>]+>", " ", text))
+        match = re.search(
+            r"(?:Долг|Аванс|Задолженность)\s+на\s+начало\s+([а-яё]+)\s*['’]\s*(\d{4}|\d{2})(?!\d)",
+            plain, re.IGNORECASE,
+        )
+        months = (
+            "января", "февраля", "марта", "апреля", "мая", "июня",
+            "июля", "августа", "сентября", "октября", "ноября", "декабря",
+        )
+        if not match or match.group(1).lower() not in months:
+            return None
+        year = int(match.group(2))
+        if len(match.group(2)) == 2:
+            year += 2000
+        month = months.index(match.group(1).lower()) + 1
+        return f"{year:04d}-{month:02d}-01"
 
     @staticmethod
     def _extract_inline_field(html: str, icon_class: str) -> str:

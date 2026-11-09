@@ -62,6 +62,10 @@ ACCOUNT_SENSORS: tuple[VodokanalAccountSensorDescription, ...] = (
             if data.accruals_current
             else None
         ),
+        attr_fn=lambda data: {
+            "billing_period": data.info.billing_month,
+            "period_name": data.accruals_current.get("month_name") if data.accruals_current else None,
+        },
     ),
     VodokanalAccountSensorDescription(
         key="accrued",
@@ -74,6 +78,10 @@ ACCOUNT_SENSORS: tuple[VodokanalAccountSensorDescription, ...] = (
             if data.accruals_current
             else None
         ),
+        attr_fn=lambda data: {
+            "billing_period": data.info.billing_month,
+            "period_name": data.accruals_current.get("month_name") if data.accruals_current else None,
+        },
     ),
     VodokanalAccountSensorDescription(
         key="paid",
@@ -86,6 +94,10 @@ ACCOUNT_SENSORS: tuple[VodokanalAccountSensorDescription, ...] = (
             if data.accruals_current
             else None
         ),
+        attr_fn=lambda data: {
+            "billing_period": data.info.billing_month,
+            "period_name": data.accruals_current.get("month_name") if data.accruals_current else None,
+        },
     ),
     VodokanalAccountSensorDescription(
         key="last_payment_amount",
@@ -140,9 +152,6 @@ def _get_counter_reading(data: VodokanalAccountData, idx: int) -> int | None:
     if idx >= len(data.counters):
         return None
     counter = data.counters[idx]
-    reading = data.latest_readings.get(counter.serial_number)
-    if reading:
-        return reading.get("value")
     return counter.last_value
 
 
@@ -152,7 +161,9 @@ def _get_counter_consumption(data: VodokanalAccountData, idx: int) -> int | None
         return None
     counter = data.counters[idx]
     reading = data.latest_readings.get(counter.serial_number)
-    if reading:
+    if reading and reading.get("value") == counter.last_value:
+        if counter.last_date and reading.get("date") != counter.last_date:
+            return None
         return reading.get("consumption")
     return None
 
@@ -163,7 +174,9 @@ def _get_counter_reading_date(data: VodokanalAccountData, idx: int) -> str | Non
         return None
     counter = data.counters[idx]
     reading = data.latest_readings.get(counter.serial_number)
-    if reading:
+    if counter.last_date:
+        return counter.last_date
+    if reading and reading.get("value") == counter.last_value:
         return reading.get("date")
     return None
 

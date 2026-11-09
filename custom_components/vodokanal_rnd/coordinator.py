@@ -25,11 +25,22 @@ from .const import (
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
     DATE_FORMAT,
+    DATE_FORMAT_SHORT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _reading_date(value: str | None) -> datetime:
+    """Compare calendar dates rather than day-first strings."""
+    for fmt in (DATE_FORMAT_SHORT, DATE_FORMAT, "%Y-%m-%d"):
+        try:
+            return datetime.strptime(value or "", fmt)
+        except ValueError:
+            continue
+    return datetime.min
 
 
 @dataclass
@@ -163,7 +174,7 @@ class VodokanalCoordinator(DataUpdateCoordinator[VodokanalData]):
                 serial = reading.get("serial", "")
                 if serial and (
                     serial not in latest_readings
-                    or reading["date"] > latest_readings[serial].get("date", "")
+                    or _reading_date(reading.get("date")) > _reading_date(latest_readings[serial].get("date"))
                 ):
                     latest_readings[serial] = reading
         except Exception:
@@ -193,8 +204,15 @@ class VodokanalCoordinator(DataUpdateCoordinator[VodokanalData]):
             accruals = await api.get_accruals_history(
                 account_id, date_from, date_to
             )
-            if accruals:
-                accruals_current = accruals[0]
+            if info.billing_month:
+                period = _reading_date(info.billing_month)
+                accruals_current = next(
+                    (row for row in accruals
+                     if _reading_date(row.get("month")).replace(day=1) == period),
+                    None,
+                )
+            if accruals_current is None:
+                _LOGGER.warning("No accruals matching active billing period for %s", account_id)
         except Exception:
             _LOGGER.warning(
                 "Could not fetch accruals for %s", account_id
